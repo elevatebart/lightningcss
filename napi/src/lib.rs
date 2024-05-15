@@ -715,10 +715,7 @@ fn compile<'i>(
               } else {
                 Default::default()
               },
-              dashed_idents: c.dashed_idents.unwrap_or_default(),
-              animation: c.animation.unwrap_or_default(),
-              grid: c.grid.unwrap_or_default(),
-              custom_idents: c.custom_idents.unwrap_or_default(),
+              ..Default::default()
             }),
           }
         } else {
@@ -845,10 +842,7 @@ fn compile_bundle<
             } else {
               Default::default()
             },
-            dashed_idents: c.dashed_idents.unwrap_or_default(),
-            animation: c.animation.unwrap_or(true),
-            grid: c.grid.unwrap_or(true),
-            custom_idents: c.custom_idents.unwrap_or(true),
+            ..Default::default()
           }),
         }
       } else {
