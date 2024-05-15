@@ -267,56 +267,69 @@ impl<'a, 'b, 'c, W: std::fmt::Write + Sized> Printer<'a, 'b, 'c, W> {
   /// Writes a CSS identifier to the underlying destination, escaping it
   /// as appropriate. If the `css_modules` option was enabled, then a hash
   /// is added, and the mapping is added to the CSS module.
-  pub fn write_ident(&mut self, ident: &str) -> Result<(), PrinterError> {
-    if let Some(css_module) = &mut self.css_module {
-      let dest = &mut self.dest;
-      let mut first = true;
-      css_module.config.pattern.write(
-        &css_module.hashes[self.loc.source_index as usize],
-        &css_module.sources[self.loc.source_index as usize],
-        ident,
-        |s| {
-          self.col += s.len() as u32;
-          if first {
-            first = false;
-            serialize_identifier(s, dest)
-          } else {
-            serialize_name(s, dest)
-          }
-        },
-      )?;
+  pub fn write_ident(&mut self, ident: &str, handle_css_module: bool) -> Result<(), PrinterError> {
+    if handle_css_module {
+      if let Some(css_module) = &mut self.css_module {
+        let dest = &mut self.dest;
+        let mut first = true;
+        css_module.config.pattern.write(
+          &css_module.hashes[self.loc.source_index as usize],
+          &css_module.sources[self.loc.source_index as usize],
+          ident,
+          |s| {
+            self.col += s.len() as u32;
+            if first {
+              first = false;
+              serialize_identifier(s, dest)
+            } else {
+              serialize_name(s, dest)
+            }
+          },
+        )?;
 
-      css_module.add_local(&ident, &ident, self.loc.source_index);
+        css_module.add_local(&ident, &ident, self.loc.source_index);
+      } else {
+        serialize_identifier(ident, self)?
+      }
     } else {
-      serialize_identifier(ident, self)?;
+      serialize_identifier(ident, self)?
     }
 
     Ok(())
   }
 
-  pub(crate) fn write_dashed_ident(&mut self, ident: &str, is_declaration: bool) -> Result<(), PrinterError> {
+  pub(crate) fn write_dashed_ident(
+    &mut self,
+    ident: &str,
+    is_declaration: bool,
+    handle_css_module: bool,
+  ) -> Result<(), PrinterError> {
     self.write_str("--")?;
 
-    match &mut self.css_module {
-      Some(css_module) if css_module.config.dashed_idents => {
-        let dest = &mut self.dest;
-        css_module.config.pattern.write(
-          &css_module.hashes[self.loc.source_index as usize],
-          &css_module.sources[self.loc.source_index as usize],
-          &ident[2..],
-          |s| {
-            self.col += s.len() as u32;
-            serialize_name(s, dest)
-          },
-        )?;
+    if handle_css_module {
+      match &mut self.css_module {
+        Some(css_module) if css_module.config.dashed_idents => {
+          let dest = &mut self.dest;
+          css_module.config.pattern.write(
+            &css_module.hashes[self.loc.source_index as usize],
+            &css_module.sources[self.loc.source_index as usize],
+            &ident[2..],
+            |s| {
+              self.col += s.len() as u32;
+              serialize_name(s, dest)
+            },
+          )?;
 
-        if is_declaration {
-          css_module.add_dashed(ident, self.loc.source_index);
+          if is_declaration {
+            css_module.add_dashed(ident, self.loc.source_index);
+          }
+        }
+        _ => {
+          serialize_name(&ident[2..], self)?;
         }
       }
-      _ => {
-        serialize_name(&ident[2..], self)?;
-      }
+    } else {
+      serialize_name(&ident[2..], self)?;
     }
 
     Ok(())
